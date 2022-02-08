@@ -1,34 +1,18 @@
 const { Kafka } = require('kafkajs')
-// const fs = require('fs')
+const { v4 } = require('uuid')
+require("dotenv").config()
 
 const kafka = new Kafka({
-  clientId: 'Football',
+  clientId: 'AppName',
   brokers: ['0.0.0.0:9092'],
-  // ssl: {
-  //   rejectUnauthorized: false,
-  //   ca: [fs.readFileSync('/cert/ca.crt', 'utf-8')],
-  //   key: fs.readFileSync('/cert/client-key.pem', 'utf-8'),
-  //   cert: fs.readFileSync('/cert/client-cert.pem', 'utf-8')
-  // },
-  // ssl: true,
-  // sasl: {
-  //   mechanism: 'plain', // scram-sha-256 or scram-sha-512
-  //   username: 'my-username',
-  //   password: 'my-password'
-  // },
-  // retry: {
-  //   initialRetryTime: 100,
-  //   retries: 8
-  // },
-  // logLevel: logLevel.ERROR,
-  connectionTimeout: 30000,
-  requestTimeout: 25000
+  // brokers: ["process.env.BROKER_URL1","process.env.BROKER_URL2","process.env.BROKER_URL3"]
+
 })
 
 
-async function main() {
+async function sub() {
 
-  const consumer = kafka.consumer({ groupId: 'Football' })
+  const consumer = kafka.consumer({ groupId: 'AppName: ' + v4() })
 
   await consumer.connect()
 
@@ -37,90 +21,36 @@ async function main() {
   // consumer.on(HEARTBEAT, e =>
   //   console.log(`heartbeat ${e.id} at ${e.timestamp} type ${e.type} inside group ${e.payload.groupId}`))
 
+  const { REQUEST } = consumer.events
+  consumer.on(REQUEST, e =>
+    console.log(`REQUEST ID ${e.id} at ${e.timestamp} TYPE ${e.type}  
+    PAYLOAD ${e.payload.broker} ${e.payload.clientId}, ${e.payload.createdAt}, ${e.payload.sentAt}`))
+
+  // {broker, clientId, correlationId, size, createdAt, sentAt, pendingDuration, duration, apiName, apiKey, apiVersion}
+
 
   await consumer.subscribe({ topic: 'EPL', fromBeginning: true })
-  await consumer.subscribe({ topic: 'Bundesliga', fromBeginning: true })
 
   /**
    * Normal consume - eachMessage
-   * */ 
+   * */
+
+  let msgCount = 0
 
   await consumer.run({
-    eachMessage: async ({ topic, _, message }) => {
+    eachMessage: async ({ topic, partition, message }) => {
+      msgCount++
       console.log({
+        topic: topic,
         key: message.key.toString(),
         value: message.value.toString(),
-        headers: message.headers,
-        topic: topic,
+        offset: message.offset,
+        count: msgCount
         // partition: partition,
       })
     },
   })
 
-
-   /**
-   * Consume eachBatch
-   * */ 
-
-  // await consumer.run({
-  //   eachBatchAutoResolve: true,
-  //   eachBatch: async ({
-  //     batch,
-  //     resolveOffset,
-  //     heartbeat,
-  //     commitOffsetsIfNecessary,
-  //     uncommittedOffsets,
-  //     isRunning,
-  //     isStale,
-  //   }) => {
-  //     for (let message of batch.messages) {
-  //       if (!isRunning() || isStale()) break
-  //       console.log({
-  //         topic: batch.topic,
-  //         partition: batch.partition,
-  //         highWatermark: batch.highWatermark,
-  //         message: {
-  //           offset: message.offset,
-  //           key: message.key.toString(),
-  //           value: message.value.toString(),
-  //           headers: message.headers,
-  //         }
-  //       })
-
-  //       // isRunning()
-
-  //       resolveOffset(message.offset)
-  //       await heartbeat()
-  //     }
-  //   },
-  // })
-
-  /**
-   * Normal consume -  Partition-aware concurrency
-   * */ 
-
-  // await consumer.run({
-  //   partitionsConsumedConcurrently: 3, // Default: 1
-  //   eachMessage: async ({ topic, partition, message }) => {
-  //     // This will be called up to 3 times concurrently
-  //     try {
-  //       await sendToDependency(message)
-  //     } catch (e) {
-  //       if (e instanceof TooManyRequestsError) {
-  //         consumer.pause([{ topic, partitions: [partition] }])
-  //         // Other partitions will keep fetching and processing, until if / when
-  //         // they also get throttled
-  //         setTimeout(() => {
-  //           consumer.resume([{ topic, partitions: [partition] }])
-  //           // Other partitions that are paused will continue to be paused
-  //         }, e.retryAfter * 1000)
-  //       }
-
-  //       throw e
-  //     }
-  //   },
-  // })
-
 }
 
-main()
+sub()
