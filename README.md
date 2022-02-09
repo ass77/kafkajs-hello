@@ -10,7 +10,7 @@ keyword: `data-streaming-platform`
 
 a. Create group (clientId) : `auto set @ consumer.js at line31`
 
-b. Create topic with two partitions : `rpk topic create EPL -p 2 && rpk topic create Bundesliga -p 2`
+b. Create topics with two partitions : `rpk topic create EPL -p 2 && rpk topic create Bundesliga -p 2`
 
 1. Admin: `hosts all clusters operation (CRUD) such as createTopic, createPartitions, createACL, deleteTopic etc.`
 ```

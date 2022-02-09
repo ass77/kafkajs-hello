@@ -14,7 +14,7 @@ const kafka = new Kafka({
 async function sub() {
 
   const registry = new SchemaRegistry({ host: 'http://localhost:8081/' })
-  const consumer = kafka.consumer({ groupId: 'Consumer: ' + v4() })
+  const consumer = kafka.consumer({ groupId: 'Human: ' + v4() })
 
   await consumer.connect()
 
@@ -31,7 +31,7 @@ async function sub() {
   // {broker, clientId, correlationId, size, createdAt, sentAt, pendingDuration, duration, apiName, apiKey, apiVersion}
 
 
-  await consumer.subscribe({ topic: 'test-schema', fromBeginning: true })
+  await consumer.subscribe({ topic: 'buddi', fromBeginning: true })
 
   let msgCount = 0
 
