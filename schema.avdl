@@ -1,0 +1,8 @@
+@namespace("thc_person_schema.com")
+protocol SiteProtocol {
+  record Person {
+    int id;
+    string fullName;
+    string phoneNumber;
+  }
+}
