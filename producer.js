@@ -1,88 +1,107 @@
 const { Kafka } = require('kafkajs')
 require("dotenv").config()
+const { v4 } = require('uuid')
 const { SchemaRegistry, SchemaType } = require('@kafkajs/confluent-schema-registry')
 
 const kafka = new Kafka({
-  clientId: 'AppName',
-  // brokers: ['0.0.0.0:9092'],
-  brokers: [process.env.BROKER_URL1, process.env.BROKER_URL2, process.env.BROKER_URL3]
+  clientId: 'GenesisApp',
+  brokers: [process.env.BROKER_URL1, process.env.BROKER_URL2, process.env.BROKER_URL3],
 
 })
 
-const registry = new SchemaRegistry({ host: 'http://localhost:8081' })
+// const kafka = new Kafka({
+//   clientId: 'serverless-referral',
+//   brokers: [process.env.BROKER_URL1, process.env.BROKER_URL2, process.env.BROKER_URL3],
+// })
+
+
+const registry = new SchemaRegistry({ host: process.env.SCHEMA_URL1 })
+// Always connect to LEADER first
 
 async function pub() {
   // AVRO schema type
 
-  // schema registry will be registered under subject 
+  // schema registry will be registered under subject and can be viewed in topic
+  // const schema = {
+  //   name: "jobs", //for subject purposes
+  //   namespace: "animal", //for subject purposes
+  //   type: "record",
+  //   fields: [
+  //     { name: "name", type: "string" },
+  //     { name: "age", type: "int" },
+  //     { name: "job", type: "string" },
+  //   ],
+  // };
+  // // subject name = namespace.name
+
+  // const schema = {
+  //   namespace: "testServ", //for subject purposes
+  //   name: "fererroT", //for subject purposes
+  //   type: "record",
+  //   fields: [
+  //     { name: "url", type: ['null', 'string'], default: null },
+  //     { name: "referrerId", type: ['null', 'string'], default: null },
+  //     { name: "createdAt", type: ['null', 'string'], default: null },
+  //     { name: "updatedAt", type: ['null', 'string'], default: null },
+  //   ],
+  // };
+
+
   const schema = {
-    name: "animalist", //for subject purposes
-    namespace: "binatang", //for subject purposes
+    namespace: "actionType", //for subject purposes
+    name: "fererroT", //for subject purposes
     type: "record",
     fields: [
-      { name: "name", type: "string" },
-      { name: "breed", type: "string" },
-      { name: "color", type: "string" },
+      { name: "actionType", type: ['null', 'string'], default: null },
+      { name: "url", type: ['null', 'string'], default: null },
+      { name: "referrerId", type: ['null', 'string'], default: null },
+      { name: "createdAt", type: ['null', 'string'], default: null },
+      { name: "updatedAt", type: ['null', 'string'], default: null },
     ],
   };
-  // subject name = namespace.name
-
-  // JSON schema type
-
-  // const schema = `
-  //   {
-  //     "definitions" : {
-  //       "record:Human.THC" : {
-  //         "type" : "object",
-  //         "required" : [ "name", "age", "color" ],
-  //         "additionalProperties" : false,
-  //         "properties" : {
-  //           "name" : {
-  //             "type" : "string"
-  //           },
-  //           "age" : {
-  //             "type" : "integer"
-  //           },
-  //           "color" : {
-  //             "type" : "string"
-  //           }
-  //         }
-  //       }
-  //     },
-  //     "$ref" : "#/definitions/record:Human.THC"
-  //   }
-  // `
 
 
-  // // TODO where to host this schema registry ? Can we host it @ redpanda brokers ?
 
+  // register & publish schema
   const { id } = await registry.register({
-  type: SchemaType.AVRO,
-  schema: JSON.stringify(schema),
+    type: SchemaType.AVRO,
+    schema: JSON.stringify(schema),
   });
-
-
-  // const { id } = await registry.register(
-  //   { type: SchemaType.JSON, schema },
-  //   { subject: "Human.THC" })
 
   const producer = kafka.producer()
 
   await producer.connect()
 
-  // Encode using the uploaded schema
 
-  // AVRO
-  const payload = { name: "Charlie", breed: "Golden Retrievers", color: "Gold" };
 
-  // BUG Invalid schema Type JSON
-  // const payload = { name: "Meowie", age: 42, color: "White" };
+  // stress testing 
+  // for (let i = 0; i < 2; i++) {
+
+  //   const payload = { name: `Action-${i}`, age: i, job: `Job-${i}` };
+  //   const encodedValue = await registry.encode(id, payload);
+
+  //   await producer.send({
+  //     topic: "site-action-C",
+  //     messages: [{ key: `key-D${i}`, value: encodedValue }],
+  //   });
+
+  //   console.log(`sending ${i} msg`)
+
+  // }
+
+  const payload = {
+    actionType: 'Secondary',
+    url: "https://www.facebook.com",
+    referrerId: "690690",
+    createdAt: "2020-01-01T00:00:00.000Z",
+    updatedAt: "2020-01-01T00:00:00.000Z",
+  }
 
   const encodedValue = await registry.encode(id, payload);
 
   await producer.send({
-    topic: 'buddi',
-    messages: [{ value: encodedValue }],
+    topic: 'site-action-B',
+    messages: [{ key: 'TEST', value: encodedValue }],
   })
 
   await producer.disconnect()

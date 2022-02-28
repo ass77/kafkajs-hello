@@ -5,7 +5,7 @@ const { SchemaRegistry } = require('@kafkajs/confluent-schema-registry')
 
 
 const kafka = new Kafka({
-  clientId: 'AppName',
+  clientId: 'GenesisApp',
   // brokers: ['0.0.0.0:9092'],
   brokers: [process.env.BROKER_URL1, process.env.BROKER_URL2, process.env.BROKER_URL3]
 })
@@ -13,34 +13,30 @@ const kafka = new Kafka({
 
 async function sub() {
 
-  const registry = new SchemaRegistry({ host: 'http://localhost:8081/' })
-  const consumer = kafka.consumer({ groupId: 'Human: ' + v4() })
+  const registry = new SchemaRegistry({ host: process.env.SCHEMA_URL2 })
+  // Always connect to LEADER first
+
+  const consumer = kafka.consumer({ groupId: v4() })
 
   await consumer.connect()
 
-  // check if this system still has heartbeat == still alive
-  // const { HEARTBEAT } = consumer.events
-  // consumer.on(HEARTBEAT, e =>
-  //   console.log(`heartbeat ${e.id} at ${e.timestamp} type ${e.type} inside group ${e.payload.groupId}`))
+  await consumer.subscribe({ topic: 'site-action-D', fromBeginning: true })
 
-  // const { REQUEST } = consumer.events
-  // consumer.on(REQUEST, e =>
-  //   console.log(`REQUEST ID ${e.id} at ${e.timestamp} TYPE ${e.type}  
-  //   PAYLOAD ${e.payload.broker} ${e.payload.clientId}, ${e.payload.createdAt}, ${e.payload.sentAt}`))
-
-  // {broker, clientId, correlationId, size, createdAt, sentAt, pendingDuration, duration, apiName, apiKey, apiVersion}
-
-
-  await consumer.subscribe({ topic: 'buddi', fromBeginning: true })
-
-  let msgCount = 0
 
   await consumer.run({
     eachMessage: async ({ topic, partition, message }) => {
-      msgCount++
       const decodedValue = await registry.decode(message.value)
-      // console.log({ topic: topic, offset: message.offset, count: msgCount })
-      console.log(decodedValue)
+      const payload =
+      {
+        key: message.key.toString(),
+        topic: topic,
+        payload: decodedValue,
+        partition: partition,
+        offset: message.offset,
+        timestamp: message.timestamp,
+      }
+
+      console.log(payload)
     },
   })
 
